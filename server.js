@@ -5,13 +5,21 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import fsPromises from "fs/promises";
+import dotenv from "dotenv";
+const env = process.env.NODE_ENV || "development";
+
+if (env === "development") {
+  dotenv.config({ path: ".env.local" });
+} else if (env === "production") {
+  dotenv.config({ path: ".env.prod" });
+}
 
 const upload = multer({ dest: "uploads" });
 const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.ORIGIN,
     optionsSuccessStatus: 200,
   })
 );
@@ -19,8 +27,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(express.static("uploads"));
 
-app.post("/upload", upload.array("files"), (req, res) => {
+app.get("/", (req, res) => {
+  res.send("Hello");
+});
+
+app.post("/files/upload", upload.array("files"), (req, res) => {
   const files = req.files;
+  console.log(files);
 
   for (const file of files) {
     if (file.mimetype == "image/svg+xml") {
@@ -55,7 +68,7 @@ app.get("/image/:identifier", (req, res) => {
   }
 });
 
-app.post("/delete", async (req, res) => {
+app.post("/files/delete", async (req, res) => {
   const fileNamesToDelete = req.body.filenames;
   for (const fileName of fileNamesToDelete) {
     const filePath = `./uploads/${fileName}`;
@@ -75,4 +88,4 @@ app.post("/delete", async (req, res) => {
 //   res.send("Here is all your images");
 // });
 
-app.listen(3001);
+app.listen(3002);
