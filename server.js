@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import dotenv from "dotenv";
+import WebSocket, { WebSocketServer } from "ws";
 const env = process.env.NODE_ENV || "development";
 
 if (env === "development") {
@@ -16,6 +17,9 @@ if (env === "development") {
 
 const upload = multer({ dest: "uploads" });
 const app = express();
+const port = 3002;
+
+app.listen(port);
 
 app.use(
   cors({
@@ -33,7 +37,6 @@ app.get("/", (req, res) => {
 
 app.post("/files/upload", upload.array("files"), (req, res) => {
   const files = req.files;
-  console.log(files);
 
   for (const file of files) {
     if (file.mimetype == "image/svg+xml") {
@@ -84,8 +87,25 @@ app.post("/files/delete", async (req, res) => {
   res.json({ status: true });
 });
 
-// app.get("/all-images", (req, res) => {
-//   res.send("Here is all your images");
-// });
+// Web Socket Configuration
+const wss = new WebSocketServer({
+  port: 3003,
+});
 
-app.listen(3002);
+wss.on("connection", (ws) => {
+  console.log("New client connected");
+
+  ws.on("message", (message) => {
+    wss.clients.forEach((client) => {
+      client.send(message);
+    });
+  });
+
+  ws.on("close", () => {
+    console.log("Client disconnected");
+  });
+
+  ws.on("error", (error) => {
+    console.error("WebSocket error:", error);
+  });
+});
